@@ -1,0 +1,88 @@
+#include "opencv2/opencv.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/core/core.hpp"
+
+using namespace cv;
+using namespace std;
+
+int getG(Mat image, int i, int j) {
+	int G = -1 * image.at<uchar>(i - 1, j - 1) - image.at<uchar>(i - 1, j) - image.at<uchar>(i - 1, j + 1)
+		- image.at<uchar>(i, j - 1) + 8 * image.at<uchar>(i, j) - image.at<uchar>(i, j + 1)
+		- image.at<uchar>(i + 1, j - 1) - image.at<uchar>(i + 1, j) - image.at<uchar>(i + 1, j + 1);
+	return G;
+}
+
+int main(int argc, char* argv[]) {
+	//Load a grayscale image
+	Mat image = imread(argv[1], IMREAD_GRAYSCALE);
+
+	if (!image.data) {
+		cout << "couldn't find the image" << endl;
+		return -1;
+	}
+	//Image smoothing using gaussian filter
+	int T = atoi(argv[2]);
+	int gx, gy, G;
+	Mat output = image.clone();
+	int k[5][5] = { { 2,4,5,4,2 },{ 4,9,12,9,4 },{ 5,12,15,12,5 },{ 4,9,12,9,4 },{ 2,4,5,4,2 } };
+	double val;
+
+	for (int i = 2; i < image.rows - 2; i++) {
+		for (int j = 2; j < image.cols - 2; j++) {
+			val = 0.0;
+			for (int m = -2; m <= 2; m++) {
+				for (int n = -2; n <= 2; n++) {
+					val = val + double(k[m + 2][n + 2] * image.at<uchar>(i + m, j + n)) / 159;
+				}
+			}
+			output.at<uchar>(i, j) = cvRound(val);
+			gx = 1 * image.at<uchar>(i + 1, j - 1) + 2 * image.at<uchar>(i + 1, j) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i, j) - 2 * image.at<uchar>(i - 1, j) - 1 * image.at<uchar>(i - 1, j + 1);
+			gy = 1 * image.at<uchar>(i - 1, j + 1) + 2 * image.at<uchar>(i, j + 1) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i, j) - 2 * image.at<uchar>(i, j - 1) - 1 * image.at<uchar>(i + 1, j - 1);
+			G = abs(gx) + abs(gy);
+
+			if (G > T)
+				output.at<uchar>(i, j) = 255;
+			else
+				output.at<uchar>(i, j) = 0;
+		}
+	}
+
+	int G;
+
+
+	for (int i = 2; i < image.rows - 2; i++) {
+		for (int j = 2; j < image.cols - 2; j++) {
+			/*G = -1 * image.at<uchar>(i - 1, j - 1) - image.at<uchar>(i - 1, j) - image.at<uchar>(i - 1, j + 1)
+				- image.at<uchar>(i, j - 1) + 8 * image.at<uchar>(i, j) - image.at<uchar>(i, j + 1)
+				- image.at<uchar>(i+1, j - 1) - image.at<uchar>(i+1, j) - image.at<uchar>(i+1, j + 1);*/
+
+			G = getG(image, i, j);
+
+			if (G == 0) {
+				cout << G << endl;
+				if (getG(image, i - 1, j - 1) * getG(image, i + 1, j + 1) < 0 ||
+					getG(image, i, j - 1) * getG(image, i, j + 1) < 0 ||
+					getG(image, i + 1, j - 1) * getG(image, i - 1, j + 1) < 0 ||
+					getG(image, i - 1, j) * getG(image, i + 1, j) < 0) {
+					output.at<uchar>(i, j) = 255;
+				}
+				else {
+					output.at<uchar>(i, j) = 0;
+				}
+			}
+			else {
+				output.at<uchar>(i, j) = 0;
+			}
+
+		}
+	}
+
+
+	namedWindow("Image");
+	imshow("Image", image);
+	namedWindow("Output");
+	imshow("Output", output);
+	waitKey(0);
+
+	return 0;
+}

@@ -1,0 +1,89 @@
+#include "opencv2/opencv.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/core/core.hpp"
+
+using namespace cv;
+using namespace std;
+
+
+int main(int argc, char* argv[]) {
+	//Load a grayscale image
+	Mat image = imread(argv[1], IMREAD_GRAYSCALE);
+
+	if (!image.data) {
+		cout << "couldn't find the image" << endl;
+		return -1;
+	}
+
+	int T = atoi(argv[2]);
+	int gx, gy, G;
+
+	//DIFFERENCE OPERATOR
+	Mat difference_output = image.clone();
+	for (int i = 0; i < image.rows - 1; i++) {
+		for (int j = 0; j < image.cols - 1; j++) {
+			gx = 1 * image.at<uchar>(i, j) - 1 * image.at<uchar>(i, j + 1); //for x axis - multiply the difference operator x pixel with the image pixels and add them
+			gy = 1 * image.at<uchar>(i, j) - 1 * image.at<uchar>(i + 1, j); //for y axis
+			G = abs(gx) + abs(gy);
+			if (G > T)
+				difference_output.at<uchar>(i, j) = 255; //make the relevant output pixel as white to differentiate the edge
+			else
+				difference_output.at<uchar>(i, j) = 0;//or else keep the pixel as black
+
+		}
+	}
+
+	//SOBEL OPERATOR
+	Mat sobel_output = image.clone();
+	for (int i = 1; i < image.rows - 1; i++) {
+		for (int j = 1; j < image.cols - 1; j++) {
+			gx = 1 * image.at<uchar>(i + 1, j - 1) + 2 * image.at<uchar>(i + 1, j) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i - 1, j - 1) - 2 * image.at<uchar>(i - 1, j) - 1 * image.at<uchar>(i - 1, j + 1);
+			gy = 1 * image.at<uchar>(i - 1, j + 1) + 2 * image.at<uchar>(i, j + 1) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i - 1, j - 1) - 2 * image.at<uchar>(i, j - 1) - 1 * image.at<uchar>(i + 1, j - 1);
+			G = abs(gx) + abs(gy);
+			if (G > T)
+				sobel_output.at<uchar>(i, j) = 255;
+			else
+				sobel_output.at<uchar>(i, j) = 0;
+
+		}
+	}
+
+	//Image smoothing using gaussian filter
+	Mat smooth = image.clone();
+	int k[5][5] = { { 2,4,5,4,2 },{ 4,9,12,9,4 },{ 5,12,15,12,5 },{ 4,9,12,9,4 },{ 2,4,5,4,2 } };
+	double val;
+
+	for (int i = 2; i < image.rows - 2; i++) {
+		for (int j = 2; j < image.cols - 2; j++) {
+			val = 0.0;
+			for (int m = -2; m <= 2; m++) {
+				for (int n = -2; n <= 2; n++) {
+					val = val + double(k[m + 2][n + 2] * image.at<uchar>(i + m, j + n)) / 159;
+				}
+
+			}
+			smooth.at<uchar>(i, j) = cvRound(val);
+			gx = 1 * image.at<uchar>(i + 1, j - 1) + 2 * image.at<uchar>(i + 1, j) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i - 1, j - 1) - 2 * image.at<uchar>(i - 1, j) - 1 * image.at<uchar>(i - 1, j + 1);
+			gy = 1 * image.at<uchar>(i - 1, j + 1) + 2 * image.at<uchar>(i, j + 1) + 1 * image.at<uchar>(i + 1, j + 1) - 1 * image.at<uchar>(i - 1, j - 1) - 2 * image.at<uchar>(i, j - 1) - 1 * image.at<uchar>(i + 1, j - 1);
+			G = abs(gx) + abs(gy);
+			if (G > T)
+				smooth.at<uchar>(i, j) = 255;
+			else
+				smooth.at<uchar>(i, j) = 0;
+		}
+
+	}
+
+
+	namedWindow("Image");
+	imshow("Image", image);
+	namedWindow("Difference Operator");
+	imshow("Difference Operator", difference_output);
+	namedWindow("Sobel Operator");
+	imshow("Sobel Operator", sobel_output);
+	namedWindow("Gaussian smooth");
+	imshow("Gaussian smooth", smooth);
+	waitKey(0);
+
+	return 0;
+}

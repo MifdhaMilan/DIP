@@ -1,0 +1,44 @@
+#include "opencv2/opencv.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/core.hpp"
+
+using namespace cv;
+using namespace std;
+
+int main(int argc, char* argv[]) {
+
+  Mat image = imread(argv[1], IMREAD_GRAYSCALE);
+
+  if (!image.data) {
+    cout << "Could not find the image! " << endl;
+    return -1;
+  }
+
+  Mat output = image.clone();
+  int G;
+  for (int i = 1; i < image.rows - 1; i++) {
+    for (int j = 1; j < image.cols - 1; j++) {
+
+      G = -image.at<uchar>(i - 1, j - 1) - image.at<uchar>(i - 1, j) - image.at<uchar>(i - 1, j + 1)
+          -image.at<uchar>(i, j - 1) + 8 * image.at<uchar>(i, j) - image.at<uchar>(i, j + 1)
+          -image.at<uchar>(i + 1, j - 1) - image.at<uchar>(i + 1, j) - image.at<uchar>(i + 1, j + 1);
+
+      if (G < 0) {
+        G = 0;
+      }else if (G > 255) {
+        G= 255;
+      }
+
+      output.at<uchar>(i, j) = G;    
+    }
+  }
+
+  namedWindow("Image");
+  imshow("Image", image);
+  namedWindow("Output");
+  imshow("Output", output);
+  waitKey(0);
+
+  return 0;
+
+}
